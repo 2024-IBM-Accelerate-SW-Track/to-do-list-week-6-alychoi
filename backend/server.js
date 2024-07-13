@@ -5,11 +5,16 @@ const express = require("express"),
 const bodyParser = require('body-parser');
 const fsPromises = require("fs").promises;
 const todoDBName = "tododb";
-const useCloudant = false;
+const useCloudant = true;
 
 
 
 //Init code for Cloudant
+const {CloudantV1} = require('@ibm-cloud/cloudant');
+if (useCloudant)
+{
+    initDB();
+}
 
 //Initialize backend
 app.use(cors());
@@ -60,17 +65,42 @@ async function addItem (request, response) {
 //** week 6, get all items from the json database*/
 app.get("/get/items", getItems)
 async function getItems (request, response) {
-    //begin here
-
+    var data = await fsPromises.readFile("database.json");
+    return response.json(JSON.parse(data));
 };
 
 //** week 6, search items service */
 app.get("/get/searchitem", searchItems) 
 async function searchItems (request, response) {
-    //begin here
-
+    var searchField = request.query.taskname;
+    var json = JSON.parse (await fsPromises.readFile("database.json"));
+    var returnData = json.filter(jsondata => jsondata.Task === searchField);
+    return response.json(returnData);
 };
 
 
 // Add initDB function here
+async function initDB ()
+{
+    //TODO --- Insert to create DB
+    //See example at https://www.npmjs.com/package/@ibm-cloud/cloudant#authentication-with-environment-variables for how to create db
+    
+    try {
+        const todoDBName = "tododb";
+        const client = CloudantV1.newInstance({});
+        const putDatabaseResult = (
+        await client.putDatabase({
+        db: todoDBName,
+      })
+    ).result;
+    if (putDatabaseResult.ok) {
+      console.log(`"${todoDBName}" database created.`);
+    }
+  } catch (err) {
+   
+      console.log(
+        `Cannot create "${todoDBName}" database, err: "${err.message}".`
+      );
 
+  }
+};
